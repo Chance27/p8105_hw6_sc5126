@@ -37,7 +37,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Question 2
 
-# Load data
+### Load data
 ```{r load_data}
 weather_df = 
   rnoaa::meteo_pull_monitors(
@@ -51,7 +51,7 @@ weather_df =
     tmax = tmax / 10) |>
   select(name, id, everything())
 ```
-# Bootstrap $\hat{r}^2$
+### Bootstrap $\hat{r}^2$
 ```{r get_r2}
 bootstrap_r2 = 
   weather_df %>%  
@@ -76,7 +76,7 @@ bootstrap_r2 %>%
 Here the $\hat{r}^2$ value we derived is high. It has a mean of `r mean(bootstrap_r2$r.squared)`. the bootstrap values of $\hat{r}^2$ ranges from `r min(bootstrap_r2$r.squared)` to `r max(bootstrap_r2$r.squared)`. It can be concluded that `tmin` and `prcp` explained `tmax` decently.
 
 
-# The 95% intervel for $\hat{r}^2$
+### The 95% intervel for $\hat{r}^2$
 
 ```{r calculate_CI_r2}
 
@@ -88,7 +88,7 @@ bootstrap_r2 %>%
 ```
 
 
-## Bootstrap $\log(\beta_1 * \beta2)$
+### Bootstrap $\log(\beta_1 * \beta2)$
 ```{r bootstrap_log}
 
 bootstrap_logb1b2 = 
@@ -128,10 +128,9 @@ bootstrap_logb1b2 =
 
 Here the distribution of $\log(\beta_1 * \beta2)$ is skewed to the left.
 
-The $\log(\beta_1 * \beta2)$ value we derived has a mean of `r mean(bootstrap_logb1b2$log_b1b2)`. the bootstrap values of $\log(\beta_1 * \beta2)$ ranges from `r min(bootstrap_logb1b2$log_b1b2)` to `r max(bootstrap_logb1b2$log_b1b2)`.
 
 
-# The 95% intervel for $\log(\beta_1 * \beta2)$
+### The 95% intervel for $\log(\beta_1 * \beta2)$
 
 ```{r calculate_CI_logb1b2}
 
@@ -146,10 +145,43 @@ bootstrap_logb1b2 %>%
 
 ## Question 3
 
+```{r clean_data, echo=FALSE}
+# Load and clean the data for regression analysis 
+# (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
 
-
-```{r , echo=FALSE}
+bw_df = 
+  read_csv("data/birthweight.csv", show_col_types = FALSE) %>% 
+  janitor::clean_names() %>% 
+  mutate(
+    babysex = factor(babysex, labels = c("male", "female")),
+    frace = factor(frace, labels = c("white", "black", "asian", "puerto rican", "other")),
+    malform = factor(malform, labels = c("absent", "present")),
+    mrace = factor(mrace, labels = c("white", "black", "asian", "puerto rican")))
 
 ```
+
+```{r}
+skimr::skim(bw_df)
+
+```
+
+
+Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
+
+```{r lm_bw}
+
+```
+
+
+Compare your model to two others:
+
+One using length at birth and gestational age as predictors (main effects only)
+- One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+- Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
+
+Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
+
+Optional post-assignment survey
+
 
 
