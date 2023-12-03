@@ -166,22 +166,81 @@ skimr::skim(bw_df)
 ```
 
 
-Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
-
 ```{r lm_bw}
+# Propose a regression model for birthweight. 
+# This model may be based on a hypothesized structure for the factors that underly birthweight, 
+# on a data-driven model-building process, or a combination of the two. 
+# Describe your modeling process and show a plot of model residuals against fitted values – 
+# use add_predictions and add_residuals in making this plot.
+
+
+all_lm = 
+  lm(bwt~ ., data = bw_df) %>% 
+  step(direction = "both")
+
+```
+
+Here through the stepwise model selection method, which is a a data-driven model-building process and changes the included variables for the model in each iteration, it can be found that the best model is `bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken`, since it has the lowest AIC.
+
+
+###  Plot of residuals VS fitted values
+```{r plot_res_fitted}
+
+bw_df %>% 
+  modelr::add_residuals(all_lm) %>%
+  modelr::add_predictions(all_lm) %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha =.3) +
+  labs( 
+    x= "Fitted Values", 
+    y = "Residuals",
+    title = "Residuals VS Fitted values") +
+  geom_line(aes(y = 0), color = "red")
 
 ```
 
 
-Compare your model to two others:
 
-One using length at birth and gestational age as predictors (main effects only)
-- One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
-- Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
+```{r compare_models}
+# compare to:
+# One using length at birth and gestational age as predictors (main effects only)
+# One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
 
-Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
+# Make this comparison in terms of the cross-validated prediction error; 
+# use crossv_mc and functions in purrr as appropriate.
 
-Optional post-assignment survey
+# bwt ~ babysex + bhead + blength + delwt + fincome + gaweeks + mheight + mrace + parity + ppwt + smoken
+
+cv_df = 
+  crossv_mc(bw_df, 100) %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble)
+    ) %>% 
+  mutate(
+    model_1 = map(train, \(df) lm(bwt ~blength + gaweeks, data=df)),
+    model_2 = map(train, \(df) lm(bwt ~bhead + blength + babysex +
+                                    bhead*blength + bhead*babysex + blength*babysex + 
+                                    bhead*blength*babysex, data=df)),
+    best_lm = map(train, \(df) lm(bwt ~ babysex + bhead + blength + delwt + fincome + 
+                                     gaweeks + mheight + mrace + parity + ppwt + 
+                                     smoken,data=df))
+    ) %>% 
+  mutate(
+    rmse_model_1 =map2_dbl(model_1, test, \(mod, df) rmse(model = mod, data = df)),
+    rmse_model_2 =map2_dbl(model_2, test, \(mod, df) rmse(model = mod, data = df)),
+    rmse_best_lm =map2_dbl(best_lm, test, \(mod, df) rmse(model = mod, data = df))
+  )
+
+```
+### Plot RMSE
+
+```{r plot_RMSE}
+
+```
+
+
+
 
 
 
