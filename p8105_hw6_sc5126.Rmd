@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: github_document
 ---
 
-```{r load_library, warning = FALSE, message = FALSE}
+```{r load_library, warning = FALSE, message = FALSE, include=FALSE}
 library(tidyr)
 library(tidyverse)
 library(rvest)
@@ -37,6 +37,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Question 2
 
+# Load data
 ```{r load_data}
 weather_df = 
   rnoaa::meteo_pull_monitors(
@@ -50,7 +51,7 @@ weather_df =
     tmax = tmax / 10) |>
   select(name, id, everything())
 ```
-
+# Bootstrap $\hat{r}^2$
 ```{r get_r2}
 bootstrap_r2 = 
   weather_df %>%  
@@ -70,15 +71,76 @@ bootstrap_r2 %>%
   ggplot(aes(x = r.squared)) + geom_density()
 
 ```
-Here the $\hat{r}^2$ value we derived is high. It has a mean of `r mean(bootstrap_r2$r.squared)`. the bootstrap values of $\hat{r}^2$ ranges from `r min(bootstrap_r2$r.squared)` to `r max(bootstrap_r2$r.squared)`. It can be concluded that `tmin` and `prcp` explained `tmax` decently, and since the shape of r2 distribution is not very symmetric, we shouldn't simply use mean +/- 1.96 * the standard error to construct the confidence interval for $R^2$. We can calculate the 2.5% and 97.5% quantile of the estimates across bootstrap samples instead.
 
 
-```{r calculate_CI}
+Here the $\hat{r}^2$ value we derived is high. It has a mean of `r mean(bootstrap_r2$r.squared)`. the bootstrap values of $\hat{r}^2$ ranges from `r min(bootstrap_r2$r.squared)` to `r max(bootstrap_r2$r.squared)`. It can be concluded that `tmin` and `prcp` explained `tmax` decently.
 
+
+# The 95% intervel for $\hat{r}^2$
+
+```{r calculate_CI_r2}
+
+bootstrap_r2 %>%  
+  summarize(
+    ci_lower = quantile(r.squared, 0.025), 
+    ci_upper = quantile(r.squared, 0.975))
 
 ```
 
 
+## Bootstrap $\log(\beta_1 * \beta2)$
+```{r bootstrap_log}
+
+bootstrap_logb1b2 = 
+  weather_df %>% 
+  modelr::bootstrap(n = 5000) %>% 
+  mutate(
+    models = map(strap, \(df) lm(tmax ~ tmin + prcp, data=df)),
+    results = map(models, broom::tidy)
+    ) %>% 
+  select(-strap, -models) %>% 
+  unnest(results) %>% 
+  select(id = `.id`, term, estimate) %>% 
+  pivot_wider(
+    names_from = term, 
+    values_from = estimate
+    ) %>% 
+  rename(
+    beta0 = `(Intercept)`, 
+    beta1 = tmin,
+    beta2 = prcp
+    ) %>% 
+  mutate(
+    log_b1b2 = log(beta1 * beta2)
+    )
+
+```
+
+
+
+```{r plot_logb1b2}
+
+ bootstrap_logb1b2 %>% 
+  ggplot(aes(x = log_b1b2)) + geom_density()
+
+```
+
+
+Here the distribution of $\log(\beta_1 * \beta2)$ is skewed to the left.
+
+The $\log(\beta_1 * \beta2)$ value we derived has a mean of `r mean(bootstrap_logb1b2$log_b1b2)`. the bootstrap values of $\log(\beta_1 * \beta2)$ ranges from `r min(bootstrap_logb1b2$log_b1b2)` to `r max(bootstrap_logb1b2$log_b1b2)`.
+
+
+# The 95% intervel for $\log(\beta_1 * \beta2)$
+
+```{r calculate_CI_logb1b2}
+
+bootstrap_logb1b2 %>%  
+  summarize(
+    ci_lower = quantile(log_b1b2, 0.025, na.rm = TRUE), 
+    ci_upper = quantile(log_b1b2, 0.975, na.rm = TRUE))
+
+```
 
 
 
@@ -86,7 +148,7 @@ Here the $\hat{r}^2$ value we derived is high. It has a mean of `r mean(bootstra
 
 
 
-```{r pressure, echo=FALSE}
+```{r , echo=FALSE}
 
 ```
 
